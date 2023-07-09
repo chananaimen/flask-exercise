@@ -1,5 +1,5 @@
 from typing import Tuple
-
+import json
 from flask import Flask, jsonify, request, Response
 import mockdb.mockdb_interface as db
 
@@ -54,6 +54,65 @@ def mirror(name):
 
 # TODO: Implement the rest of the API here!
 
+# @app.route("/users")
+# def getuser():
+#     return  db.get("users")
+   
+@app.route("/users/<id>")
+def getuserbyid(id):
+    data=db.getById("users",int(id))
+    if data is None:
+       return create_response({},404,"THE USER ISNT FOUND")
+    else:
+       return  create_response({'user':data})
+    
+@app.route("/users")
+def getuserbyteam():
+     data = db.get('users')
+     team = request.args.get('team')
+     if team == None:
+        return create_response({"users":data}) 
+     list=[]
+     for item in data:
+        if item["team"]==team:
+           list.append(db.getById("users",int(item["id"])))
+     return create_response({'users':list})
+
+
+    
+@app.route('/users', methods=['POST'])
+def createuser():
+    user=request.get_json()
+    rfiled=["name","age","team"]
+    if not all(filed in user for filed in rfiled):
+        return create_response( {"None":None} , 422 ,"Missing data The object should contain: ID, name and team" )
+    data=db.create("users",user)
+    write_json()
+    return create_response({'users':data},201)
+
+@app.route('/users/<id>', methods=['PUT'])
+def updateuser(id):
+    user=request.get_json()
+    data=db.updateById("users",int(id),user)
+    if data==None:
+     return create_response({"users":user} ,404 ,"id isnt exits" )   
+    write_json()
+    return create_response({'users':data},201)
+
+@app.route('/users/<id>', methods=['DELETE'])
+def removeuser(id):
+   data = db.getById("users",int(id))
+   if data == None:
+         return create_response({} , 404 , "id isnt exits" )
+   db.deleteById("users",int(id))     
+   write_json()
+   return create_response({},200,"")
+
+def write_json():
+     newdata=json.dumps({"users":db.get("users")})
+     with open("mockdb/dummy_data.py",'w') as f: 
+        f.write("initial_db_state="+newdata)
+     
 """
 ~~~~~~~~~~~~ END API ~~~~~~~~~~~~
 """
